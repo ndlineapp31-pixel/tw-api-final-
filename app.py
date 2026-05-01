@@ -34,7 +34,54 @@ def get_user():
     if not result or result in ["expired", "revoked"]: return jsonify({"error": "Invalid key"}), 401
     term = request.args.get('term')
     if not term: return jsonify({"error": "term required"}), 400
-    r = requests.get(f"https://users-xinfo-admin.vercel.app/api?key=demo&type=user&term={term}", headers={"User-Agent": "Mozilla/5.0"})
+    try:
+        r = requests.get(f"https://users-xinfo-admin.vercel.app/api?key=demo&type=user&term={term}", headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+        data = r.json()
+        data["developer"] = "@tw_hacker2"
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"error": "Lookup failed", "details": str(e)}), 500
+
+@app.route('/api/mobile')
+def get_mobile():
+    api_key = request.args.get('api_key')
+    if not api_key: return jsonify({"error": "api_key required"}), 401
+    result = check_key(api_key)
+    if not result or result in ["expired", "revoked"]: return jsonify({"error": "Invalid key"}), 401
+    term = request.args.get('term')
+    if not term: return jsonify({"error": "term required"}), 400
+    try:
+        r = requests.get(f"https://users-xinfo-admin.vercel.app/api?key=demo&type=mobile&term={term}", headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+        data = r.json()
+        data["developer"] = "@tw_hacker2"
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"error": "Lookup failed", "details": str(e)}), 500
+
+@app.route('/admin/gen')
+def admin_gen():
+    admin_key = request.args.get('admin_key')
+    if admin_key != ADMIN_KEY:
+        return jsonify({"error": "Unauthorized"}), 401
+    customer = request.args.get('customer')
+    days = request.args.get('days', '7')
+    if not customer:
+        return jsonify({"error": "customer required"}), 400
+    try:
+        days = int(days)
+    except:
+        days = 7
+    api_key = generate_key(customer, days)
+    return jsonify({
+        "api_key": api_key,
+        "customer": customer,
+        "expires": KEYS_DB[api_key]["expires"],
+        "status": "active"
+    })
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 10000))
+    app.run(host='0.0.0.0', port=port)    r = requests.get(f"https://users-xinfo-admin.vercel.app/api?key=demo&type=user&term={term}", headers={"User-Agent": "Mozilla/5.0"})
     data = r.json()
     data["developer"] = "@tw_hacker2"
     return jsonify(data)
